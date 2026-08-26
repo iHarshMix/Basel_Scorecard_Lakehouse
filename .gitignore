@@ -1,0 +1,53 @@
+# Study & Course Materials / Planning
+Material/
+material/
+basel_scorecard_implementation_plan.md
+
+# WSL / Windows zone identifiers
+*:Zone.Identifier
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data / Artifacts (typical in Lakehouse / ML projects)
+data/
+*.parquet
+*.delta
+mlruns/
+.pytest_cache/
+.ruff_cache/
