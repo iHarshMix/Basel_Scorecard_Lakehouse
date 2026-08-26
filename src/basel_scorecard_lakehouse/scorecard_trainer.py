@@ -32,9 +32,9 @@ class ScorecardTrainer:
         self.pdo = pdo
         self.c_penalty = c_penalty
 
-        # PDO Calibration Constants
+        # PDO Calibration Constants: Score = Offset - Factor * ln(Odds_default)
         self.factor = self.pdo / np.log(2.0)
-        self.offset = self.base_score + self.factor * np.log(self.base_odds)
+        self.offset = self.base_score - self.factor * np.log(self.base_odds)
 
         self.model = LogisticRegression(
             penalty="l2",

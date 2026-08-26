@@ -1,0 +1,34 @@
+{
+  "application_id": 128582025,
+  "decision": "DECLINED",
+  "regulatory_framework": "Federal Reserve SR 11-7 / ECOA Notice of Adverse Action",
+  "calculated_fico_score": 484,
+  "predicted_default_probability": 0.5274,
+  "decision_threshold_tau_star": 50.0,
+  "top_adverse_action_reasons": [
+    {
+      "reason_code": "RC01",
+      "feature_name": "dti",
+      "attribution_impact": 0.3024,
+      "statement": "Debt-to-Income (DTI) ratio is excessive relative to requested loan terms."
+    },
+    {
+      "reason_code": "RC99",
+      "feature_name": "home_ownership",
+      "attribution_impact": 0.1973,
+      "statement": "Credit profile indicator 'home_ownership' does not satisfy underwriting criteria."
+    },
+    {
+      "reason_code": "RC06",
+      "feature_name": "annual_inc",
+      "attribution_impact": 0.0931,
+      "statement": "Verified annual income is insufficient for total debt service obligations."
+    },
+    {
+      "reason_code": "RC03",
+      "feature_name": "fico_mid",
+      "attribution_impact": 0.0458,
+      "statement": "Credit bureau score does not meet minimum risk tier eligibility standards."
+    }
+  ]
+}

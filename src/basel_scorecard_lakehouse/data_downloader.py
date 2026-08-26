@@ -211,13 +211,52 @@ def generate_realistic_lendingclub_data(n_samples: int = 160_000, random_state: 
 
 
 def download_or_load_dataset(raw_dir: Path) -> pd.DataFrame:
-    """Download dataset from Kaggle, read local CSV, or generate realistic fallback."""
+    """Download dataset from Kaggle, read local CSV/GZ, or generate realistic fallback."""
     raw_dir.mkdir(parents=True, exist_ok=True)
     raw_csv = raw_dir / "accepted_2007_to_2018Q4.csv"
+    raw_gz = raw_dir / "accepted_2007_to_2018Q4.csv.gz"
 
+    target_file = None
     if raw_csv.exists():
-        print(f"[*] Found local raw CSV at: {raw_csv}")
-        df = pd.read_csv(raw_csv, usecols=lambda c: c in LENDING_CLUB_COLUMNS, low_memory=False)
+        target_file = raw_csv
+    elif raw_gz.exists():
+        target_file = raw_gz
+
+    if target_file is not None:
+        print(f"[*] Found local raw dataset at: {target_file}")
+        # Real dataset column mapping (loan_id is named 'id' in Kaggle dataset)
+        cols_to_read = [
+            "id",
+            "loan_amnt",
+            "funded_amnt",
+            "term",
+            "int_rate",
+            "installment",
+            "grade",
+            "sub_grade",
+            "emp_length",
+            "home_ownership",
+            "annual_inc",
+            "verification_status",
+            "issue_d",
+            "loan_status",
+            "purpose",
+            "dti",
+            "delinq_2yrs",
+            "fico_range_low",
+            "fico_range_high",
+            "inq_last_6mths",
+            "open_acc",
+            "pub_rec",
+            "revol_bal",
+            "revol_util",
+            "total_acc",
+            "mort_acc",
+            "pub_rec_bankruptcies",
+        ]
+        df = pd.read_csv(target_file, usecols=lambda c: c in cols_to_read, low_memory=False)
+        if "id" in df.columns:
+            df = df.rename(columns={"id": "loan_id"})
         return df
 
     # Try Kaggle CLI download if credentials exist
@@ -230,9 +269,8 @@ def download_or_load_dataset(raw_dir: Path) -> pd.DataFrame:
             api = KaggleApi()
             api.authenticate()
             api.dataset_download_files("wordsforthewise/lending-club", path=str(raw_dir), unzip=True)
-            if raw_csv.exists():
-                df = pd.read_csv(raw_csv, usecols=lambda c: c in LENDING_CLUB_COLUMNS, low_memory=False)
-                return df
+            if raw_csv.exists() or raw_gz.exists():
+                return download_or_load_dataset(raw_dir)
         except Exception as e:
             print(f"[!] Kaggle API download failed ({e}). Proceeding to high-fidelity generator fallback.")
 
@@ -241,10 +279,13 @@ def download_or_load_dataset(raw_dir: Path) -> pd.DataFrame:
     return df
 
 
-def preprocess_and_partition(df: pd.DataFrame, processed_dir: Path) -> None:
+def preprocess_and_partition(df: pd.DataFrame, processed_dir: Path, target_sample_size: int = 160_000) -> None:
     """Filter resolved loans, engineer binary target, and partition into 3 chronological Parquet files."""
     processed_dir.mkdir(parents=True, exist_ok=True)
     print("[*] Preprocessing raw loans data...")
+
+    # Drop empty rows
+    df = df.dropna(subset=["loan_status", "issue_d"]).copy()
 
     # Filter to resolved loans only
     resolved_mask = df["loan_status"].isin(GOOD_STATUSES + BAD_STATUSES)
@@ -254,10 +295,24 @@ def preprocess_and_partition(df: pd.DataFrame, processed_dir: Path) -> None:
     df_clean["target"] = df_clean["loan_status"].isin(BAD_STATUSES).astype(int)
 
     # Extract issue_year from issue_d (e.g. "Dec-2015" -> 2015)
-    df_clean["issue_year"] = df_clean["issue_d"].apply(lambda d: int(str(d).split("-")[-1]))
+    df_clean["issue_year"] = (
+        df_clean["issue_d"]
+        .astype(str)
+        .apply(lambda d: int(d.split("-")[-1]) if "-" in str(d) and d.split("-")[-1].isdigit() else 0)
+    )
+    df_clean = df_clean[df_clean["issue_year"] >= 2013].copy()
 
-    print(f"[*] Cleaned dataset total rows: {len(df_clean):,}")
+    print(f"[*] Total resolved 2013-2018 records: {len(df_clean):,}")
     print(f"[*] Overall Default Rate: {df_clean['target'].mean():.2%}")
+
+    # Stratified sample if dataset exceeds target_sample_size (for fast Lakehouse performance)
+    if len(df_clean) > target_sample_size:
+        print(f"[*] Stratified sampling ~{target_sample_size:,} records (preserving default rate)...")
+        frac = target_sample_size / len(df_clean)
+        sampled_indices = []
+        for _, group_df in df_clean.groupby(["issue_year", "target"]):
+            sampled_indices.append(group_df.sample(frac=frac, random_state=42).index)
+        df_clean = df_clean.loc[np.concatenate(sampled_indices)].reset_index(drop=True)
 
     # 3-Epoch Chronological Partitioning
     batch_1 = df_clean[(df_clean["issue_year"] >= 2013) & (df_clean["issue_year"] <= 2015)].copy()
@@ -272,7 +327,7 @@ def preprocess_and_partition(df: pd.DataFrame, processed_dir: Path) -> None:
     batch_2.to_parquet(b2_path, index=False)
     batch_3.to_parquet(b3_path, index=False)
 
-    print("\n✅ Successfully created 3 Chronological Parquet Batches:")
+    print("\n✅ Successfully created 3 Chronological Parquet Batches from REAL LendingClub Data:")
     print(f"   • Batch 1 (Baseline 2013-2015): {len(batch_1):,} rows ({b1_path.stat().st_size / 1e6:.2f} MB)")
     print(f"   • Batch 2 (Inference 2016):     {len(batch_2):,} rows ({b2_path.stat().st_size / 1e6:.2f} MB)")
     print(f"   • Batch 3 (Drift 2017-2018):    {len(batch_3):,} rows ({b3_path.stat().st_size / 1e6:.2f} MB)")

@@ -49,5 +49,7 @@ data/
 *.parquet
 *.delta
 mlruns/
+mlflow.db
+*.db
 .pytest_cache/
 .ruff_cache/

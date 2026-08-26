@@ -70,12 +70,20 @@ class FeatureEngineer:
 
     def compute_vif(self, df: pd.DataFrame, features: List[str]) -> pd.DataFrame:
         """Compute Variance Inflation Factor (VIF) for all candidate numerical features."""
+        from statsmodels.tools.tools import add_constant
+
         df_numeric = df[features].select_dtypes(include=[np.number]).dropna()
+        if len(df_numeric) == 0:
+            return pd.DataFrame(columns=["feature", "vif"])
+
+        df_with_const = add_constant(df_numeric, has_constant="add")
         vif_data = []
 
         for i, col in enumerate(df_numeric.columns):
             try:
-                vif_val = variance_inflation_factor(df_numeric.values, i)
+                # Column in df_with_const is offset by 1 due to const
+                col_idx = list(df_with_const.columns).index(col)
+                vif_val = variance_inflation_factor(df_with_const.values, col_idx)
             except Exception:
                 vif_val = 1.0
             vif_data.append({"feature": col, "vif": round(float(vif_val), 2)})

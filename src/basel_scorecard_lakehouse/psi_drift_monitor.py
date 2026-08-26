@@ -46,13 +46,13 @@ class PSIDriftMonitor:
         # Expected counts (baseline)
         if expected_scores is not None:
             exp_bins = pd.cut(expected_scores, bins=self.baseline_edges, include_lowest=True)
-            exp_counts = exp_bins.value_counts(sort=False).values.astype(float)
+            exp_counts = pd.Series(exp_bins).value_counts(sort=False).values.astype(float)
         else:
             exp_counts = np.ones(len(self.baseline_edges) - 1)
 
         # Actual counts (new batch)
         act_bins = pd.cut(actual_scores, bins=self.baseline_edges, include_lowest=True)
-        act_counts = act_bins.value_counts(sort=False).values.astype(float)
+        act_counts = pd.Series(act_bins).value_counts(sort=False).values.astype(float)
 
         # Calculate percentages with smoothing epsilon
         pct_exp = (exp_counts / exp_counts.sum()).clip(min=self.epsilon)
