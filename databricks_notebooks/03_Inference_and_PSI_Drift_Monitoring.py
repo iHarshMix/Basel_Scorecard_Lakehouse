@@ -25,7 +25,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, brier_score_loss
 import shap
 
-mlflow.set_experiment("/Shared/basel_credit_scorecard_lakehouse")
+try:
+    mlflow.set_experiment("basel_credit_scorecard_lakehouse")
+except Exception:
+    pass
 
 # Unity Catalog Volume landing directory
 LANDING_DIR = "/Volumes/workspace/default/basel_scorecard"
@@ -135,12 +138,19 @@ with mlflow.start_run(run_name="Epoch3_Retrained_Candidate_Model_v2") as run:
         "oot_gini": oot_gini,
         "psi_vs_baseline": psi_e3
     })
-    mlflow.sklearn.log_model(
-        sk_model=candidate_v2,
-        artifact_path="scorecard_model_v2",
-        registered_model_name="Basel_Credit_Scorecard"
-    )
-    print(f"🚀 Candidate_Model_v2 promoted to Production in Databricks Model Registry!")
+    try:
+        mlflow.sklearn.log_model(
+            sk_model=candidate_v2,
+            artifact_path="scorecard_model_v2",
+            registered_model_name="Basel_Credit_Scorecard"
+        )
+        print(f"🚀 Candidate_Model_v2 promoted in Databricks Model Registry!")
+    except Exception as e:
+        mlflow.sklearn.log_model(
+            sk_model=candidate_v2,
+            artifact_path="scorecard_model_v2"
+        )
+        print(f"🚀 Candidate_Model_v2 logged to MLflow Run. (Registry notice: {e})")
 
 # COMMAND ----------
 

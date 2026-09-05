@@ -29,7 +29,10 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 
 # Set Databricks MLflow experiment
-mlflow.set_experiment("/Shared/basel_credit_scorecard_lakehouse")
+try:
+    mlflow.set_experiment("basel_credit_scorecard_lakehouse")
+except Exception:
+    pass
 
 # COMMAND ----------
 
@@ -84,6 +87,7 @@ class WoEEngine:
         self.n_bins = n_bins
         self.epsilon = epsilon
         self.woe_maps = {}
+        self.bin_edges = {}
         self.iv_summary = {}
 
     def fit(self, df, features, target_col="target"):
@@ -93,10 +97,15 @@ class WoEEngine:
         for col in features:
             if np.issubdtype(df[col].dtype, np.number):
                 try:
-                    bins = pd.qcut(df[col], q=self.n_bins, duplicates="drop")
+                    _, edges = pd.qcut(df[col], q=self.n_bins, duplicates="drop", retbins=True)
                 except Exception:
-                    bins = pd.cut(df[col], bins=self.n_bins)
+                    _, edges = pd.cut(df[col], bins=self.n_bins, retbins=True)
+                edges[0] -= 1e-5
+                edges[-1] += 1e-5
+                self.bin_edges[col] = edges
+                bins = pd.cut(df[col], bins=edges)
             else:
+                self.bin_edges[col] = None
                 bins = df[col].astype(str)
 
             grp = df.groupby(bins, observed=False)[target_col].agg(["count", "sum"])
@@ -117,8 +126,8 @@ class WoEEngine:
     def transform(self, df):
         df_woe = pd.DataFrame(index=df.index)
         for col, wmap in self.woe_maps.items():
-            if np.issubdtype(df[col].dtype, np.number):
-                bins = pd.qcut(df[col], q=self.n_bins, duplicates="drop")
+            if self.bin_edges.get(col) is not None:
+                bins = pd.cut(df[col], bins=self.bin_edges[col])
             else:
                 bins = df[col].astype(str)
             df_woe[f"{col}_woe"] = bins.map(wmap).fillna(0.0).astype(float)
@@ -227,10 +236,16 @@ with mlflow.start_run(run_name="Epoch1_Baseline_Model_v1") as run:
     })
 
     # Log Model Artifact to Databricks Model Registry
-    mlflow.sklearn.log_model(
-        sk_model=clf,
-        artifact_path="scorecard_model_v1",
-        registered_model_name="Basel_Credit_Scorecard"
-    )
-
-    print(f"✅ Model registered in Databricks MLflow Registry as 'Basel_Credit_Scorecard' (Run ID: {run.info.run_id})")
+    try:
+        mlflow.sklearn.log_model(
+            sk_model=clf,
+            artifact_path="scorecard_model_v1",
+            registered_model_name="Basel_Credit_Scorecard"
+        )
+        print(f"✅ Model registered in Databricks MLflow Registry as 'Basel_Credit_Scorecard' (Run ID: {run.info.run_id})")
+    except Exception as e:
+        mlflow.sklearn.log_model(
+            sk_model=clf,
+            artifact_path="scorecard_model_v1"
+        )
+        print(f"✅ Model artifact logged to MLflow Run (Run ID: {run.info.run_id}). (Registry notice: {e})")
