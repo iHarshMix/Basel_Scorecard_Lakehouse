@@ -127,7 +127,7 @@ class WoEEngine:
         df_woe = pd.DataFrame(index=df.index)
         for col, wmap in self.woe_maps.items():
             if self.bin_edges.get(col) is not None:
-                bins = pd.cut(df[col], bins=self.bin_edges[col])
+                bins = pd.cut(df[col], bins=self.bin_edges[col]).astype(object)
             else:
                 bins = df[col].astype(str)
             df_woe[f"{col}_woe"] = bins.map(wmap).fillna(0.0).astype(float)
