@@ -49,15 +49,18 @@ def compute_psi(actual, expected, n_bins=10, epsilon=1e-6):
     bins[0] -= 1e-5
     bins[-1] += 1e-5
 
-    exp_counts = pd.cut(expected, bins=bins).value_counts(sort=False).values.astype(float)
-    act_counts = pd.cut(actual, bins=bins).value_counts(sort=False).values.astype(float)
+    exp_counts, _ = np.histogram(expected, bins=bins)
+    act_counts, _ = np.histogram(actual, bins=bins)
 
-    pct_exp = (exp_counts / exp_counts.sum()).clip(min=epsilon)
-    pct_act = (act_counts / act_counts.sum()).clip(min=epsilon)
+    exp_counts = exp_counts.astype(float)
+    act_counts = act_counts.astype(float)
+
+    pct_exp = np.clip(exp_counts / exp_counts.sum(), epsilon, None)
+    pct_act = np.clip(act_counts / act_counts.sum(), epsilon, None)
     pct_exp /= pct_exp.sum()
     pct_act /= pct_act.sum()
 
-    psi_val = np.sum((pct_act - pct_exp) * np.log(pct_act / pct_exp))
+    psi_val = float(np.sum((pct_act - pct_exp) * np.log(pct_act / pct_exp)))
     
     if psi_val < 0.10:
         status = "STABLE"
