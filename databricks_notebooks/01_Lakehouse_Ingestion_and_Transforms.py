@@ -66,6 +66,9 @@ print(f"✅ Bronze Delta Table created: {spark.table('bronze_loans').count():,} 
 # Read from Bronze
 bronze_df = spark.table("bronze_loans")
 
+# Determine identifier column
+id_col_name = "loan_id" if "loan_id" in bronze_df.columns else "id"
+
 # Filter to resolved loans only
 resolved_statuses = ["Fully Paid", "Charged Off", "Default"]
 df_resolved = bronze_df.filter(F.col("loan_status").isin(resolved_statuses))
@@ -75,10 +78,10 @@ df_silver = df_resolved.withColumn(
     "target",
     F.when(F.col("loan_status").isin(["Charged Off", "Default"]), 1).otherwise(0)
 ).withColumn(
-    "loan_id", F.coalesce(F.col("loan_id"), F.col("id")).cast(LongType())
+    "loan_id", F.col(id_col_name).cast(LongType())
 ).withColumn(
     "issue_year",
-    F.split(F.col("issue_d"), "-").getItem(1).cast(IntegerType())
+    F.col("issue_year") if "issue_year" in bronze_df.columns else F.split(F.col("issue_d"), "-").getItem(1).cast(IntegerType())
 ).withColumn(
     "fico_range_low", F.col("fico_range_low").cast(DoubleType())
 ).withColumn(
