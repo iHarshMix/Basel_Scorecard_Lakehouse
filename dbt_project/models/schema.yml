@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: stg_raw_loans
+    description: "Cleaned and typed staging view of resolved LendingClub loan records"
+    columns:
+      - name: loan_id
+        description: "Primary key identifier for each loan"
+        tests:
+          - not_null
+      - name: target
+        description: "Binary Basel default flag (0 = Good/Repaid, 1 = Bad/Default)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+  - name: silver_fact_loans
+    description: "Deduplicated, audited Silver fact table of consumer loans"
+    columns:
+      - name: loan_id
+        description: "Unique loan identifier"
+        tests:
+          - unique
+          - not_null
+      - name: target
+        description: "Basel default target label"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: fico_range_low
+        description: "Lower bound of FICO score range at origination"
+        tests:
+          - not_null
+      - name: fico_range_high
+        description: "Upper bound of FICO score range at origination"
+        tests:
+          - not_null
+
+  - name: gold_scorecard_features
+    description: "Gold feature store table ready for Basel Probability of Default scorecard modeling"
+    columns:
+      - name: loan_id
+        description: "Unique loan identifier"
+        tests:
+          - unique
+          - not_null
+      - name: target
+        description: "Binary target for logistic regression"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: fico_mid
+        description: "Midpoint FICO score (prime credit bureau predictor)"
+        tests:
+          - not_null
+      - name: dti
+        description: "Debt-to-income ratio capped at 100%"
+        tests:
+          - not_null
+      - name: installment_to_inc
+        description: "Annualized installment relative to gross income"
+        tests:
+          - not_null

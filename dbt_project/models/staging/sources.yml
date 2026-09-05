@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: lakehouse_landing
+    schema: default
+    description: "Raw bronze landing Delta tables in Databricks"
+    tables:
+      - name: bronze_loans
+        description: "Raw uncurated historical loans loaded from DBFS Parquet landing batches"
+        columns:
+          - name: id
+            description: "Primary key identifier for loan application"
+          - name: loan_status
+            description: "Repayment status of the loan"
+          - name: issue_d
+            description: "Origination date of the loan"

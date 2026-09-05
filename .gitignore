@@ -50,6 +50,11 @@ data/
 *.delta
 mlruns/
 mlflow.db
-*.db
 .pytest_cache/
 .ruff_cache/
+
+# dbt artifacts
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+logs/

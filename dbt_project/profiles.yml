@@ -1,0 +1,10 @@
+basel_scorecard_lakehouse:
+  target: databricks
+  outputs:
+    databricks:
+      type: databricks
+      schema: default
+      host: "{{ env_var('DATABRICKS_HOST', 'community.cloud.databricks.com') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH', '/sql/1.0/endpoints/default') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN', 'dapi_mock_token') }}"
+      threads: 4
