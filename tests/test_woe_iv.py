@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from basel_scorecard_lakehouse.woe_iv_engine import WoEIVEngine
 

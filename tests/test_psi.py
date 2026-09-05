@@ -1,7 +1,6 @@
 """Unit tests for Population Stability Index (PSI) drift monitoring."""
 
 import numpy as np
-import pytest
 
 from basel_scorecard_lakehouse.psi_drift_monitor import PSIDriftMonitor
 

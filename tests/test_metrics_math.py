@@ -1,7 +1,6 @@
 """Unit tests for quantitative risk metrics, Gini, KS deciles, and PDO scorecard scaling."""
 
 import numpy as np
-import pytest
 from scipy.stats import ks_2samp
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
@@ -74,7 +73,7 @@ def test_pdo_scorecard_scaling_math():
     score_at_base = offset - factor * log_odds_base
     assert np.isclose(score_at_base, base_score, atol=1e-5)
 
-    # 2. Doubling the odds of good borrower (halving default odds: ln(1/100) = -ln(100)) increases score by PDO (20 points)
+    # 2. Doubling good borrower odds (halving default odds: ln(1/100) = -ln(100)) increases score by PDO (20 pts)
     log_odds_doubled_good = -np.log(base_odds * 2.0)
     score_doubled = offset - factor * log_odds_doubled_good
     assert np.isclose(score_doubled - score_at_base, pdo, atol=1e-5)
