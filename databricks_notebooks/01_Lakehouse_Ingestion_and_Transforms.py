@@ -19,8 +19,16 @@ import pyspark.sql.functions as F
 from pyspark.sql.types import *
 from delta.tables import DeltaTable
 
-# DBFS landing paths
-LANDING_DIR = "dbfs:/FileStore/tables/basel_scorecard"
+# Landing paths (Auto-detects Unity Catalog Volume vs DBFS)
+VOLUME_PATH = "/Volumes/workspace/default/basel_scorecard"
+DBFS_PATH = "dbfs:/FileStore/tables/basel_scorecard"
+
+try:
+    dbutils.fs.ls(VOLUME_PATH)
+    LANDING_DIR = VOLUME_PATH
+except Exception:
+    LANDING_DIR = DBFS_PATH
+
 BATCH_1_PATH = f"{LANDING_DIR}/batch_1_baseline_2013_2015.parquet"
 BATCH_2_PATH = f"{LANDING_DIR}/batch_2_inference_2016.parquet"
 BATCH_3_PATH = f"{LANDING_DIR}/batch_3_drift_2017_2018.parquet"

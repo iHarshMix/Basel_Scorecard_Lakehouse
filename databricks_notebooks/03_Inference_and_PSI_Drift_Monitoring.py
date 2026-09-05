@@ -27,7 +27,27 @@ import shap
 
 mlflow.set_experiment("/Shared/basel_credit_scorecard_lakehouse")
 
-LANDING_DIR = "dbfs:/FileStore/tables/basel_scorecard"
+# Auto-detect landing paths (Unity Catalog Volumes vs DBFS)
+CANDIDATE_DIRS = [
+    "/Volumes/workspace/default/basel_scorecard",
+    "dbfs:/Volumes/workspace/default/basel_scorecard",
+    "/Volumes/main/default/basel_scorecard",
+    "dbfs:/FileStore/tables/basel_scorecard",
+]
+
+LANDING_DIR = None
+for candidate in CANDIDATE_DIRS:
+    try:
+        dbutils.fs.ls(f"{candidate}/batch_2_inference_2016.parquet")
+        LANDING_DIR = candidate
+        break
+    except Exception:
+        continue
+
+if LANDING_DIR is None:
+    LANDING_DIR = "/Volumes/workspace/default/basel_scorecard"
+
+print(f"[*] Detected Landing Directory: {LANDING_DIR}")
 
 # COMMAND ----------
 
